@@ -9,7 +9,6 @@ import { createQueue, setupQueueProcessor } from './queue';
 
 const run = async () => {
   const checkoutQueue = createQueue('checkout');
-  await setupQueueProcessor(checkoutQueue.name);
 
   const server: FastifyInstance<Server, IncomingMessage, ServerResponse> =
     fastify();
