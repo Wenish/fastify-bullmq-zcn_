@@ -7,21 +7,16 @@ import { env } from './env';
 
 import { createQueue, setupQueueProcessor } from './queue';
 
-interface AddJobQueryString {
-  id: string;
-  email: string;
-}
-
 const run = async () => {
-  const welcomeEmailQueue = createQueue('WelcomeEmailQueue');
-  await setupQueueProcessor(welcomeEmailQueue.name);
+  const checkoutQueue = createQueue('checkout');
+  await setupQueueProcessor(checkoutQueue.name);
 
   const server: FastifyInstance<Server, IncomingMessage, ServerResponse> =
     fastify();
 
   const serverAdapter = new FastifyAdapter();
   createBullBoard({
-    queues: [new BullMQAdapter(welcomeEmailQueue)],
+    queues: [new BullMQAdapter(checkoutQueue)],
     serverAdapter,
   });
   serverAdapter.setBasePath('/');
@@ -29,41 +24,6 @@ const run = async () => {
     prefix: '/',
     basePath: '/',
   });
-
-  server.get(
-    '/add-job',
-    {
-      schema: {
-        querystring: {
-          type: 'object',
-          properties: {
-            title: { type: 'string' },
-            id: { type: 'string' },
-          },
-        },
-      },
-    },
-    (req: FastifyRequest<{ Querystring: AddJobQueryString }>, reply) => {
-      if (
-        req.query == null ||
-        req.query.email == null ||
-        req.query.id == null
-      ) {
-        reply
-          .status(400)
-          .send({ error: 'Requests must contain both an id and a email' });
-
-        return;
-      }
-
-      const { email, id } = req.query;
-      welcomeEmailQueue.add(`WelcomeEmail-${id}`, { email });
-
-      reply.send({
-        ok: true,
-      });
-    }
-  );
 
   await server.listen({ port: env.PORT, host: '0.0.0.0' });
   console.log(
